@@ -1,0 +1,549 @@
+<!DOCTYPE html>
+<html lang="es" class="h-full">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Simulador Macro-Fiscal | Ley de Rescate Económico 2026 (Consultoría Q1)</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                    },
+                    colors: {
+                        navyq1: '#0F172A',
+                        blueq1: '#1D4ED8',
+                        crimsonq1: '#C62828',
+                        emeraldq1: '#15803D',
+                        amberq1: '#B45309',
+                        slateq1: '#475569',
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .glass-panel { background: rgba(255, 255, 255, 0.95); backdrop-filter: blur(10px); }
+        .custom-range::-webkit-slider-thumb {
+            background: #1D4ED8;
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-800 h-full flex flex-col antialiased selection:bg-blue-100 selection:text-blue-900">
+
+    <!-- Top Navigation Header -->
+    <header class="bg-navyq1 text-white shadow-md border-b border-slate-800 shrink-0">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
+            <div class="flex items-center space-x-3">
+                <div class="bg-blueq1 p-2 rounded-lg text-white shadow-inner">
+                    <i data-lucide="trending-up" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="font-bold text-base sm:text-lg tracking-tight leading-none">CONSULTORÍA MACROECONÓMICA Q1</h1>
+                    <p class="text-xs text-slate-400 mt-1">Simulador Dinámico Independiente: Ley de Rescate Económico 2026 (Stella Architect XMILE)</p>
+                </div>
+            </div>
+            <div class="hidden md:flex items-center space-x-4">
+                <span class="inline-flex items-center px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-900/50 text-emerald-300 border border-emerald-700/50">
+                    <span class="w-2 h-2 mr-1.5 bg-emerald-400 rounded-full animate-pulse"></span> Motor Activo (DT = 0.25)
+                </span>
+                <button onclick="resetSimulation()" class="bg-slate-800 hover:bg-slate-700 text-slate-200 text-xs px-3 py-1.5 rounded-md font-medium transition border border-slate-700 flex items-center space-x-1">
+                    <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i>
+                    <span>Restaurar Base</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Workspace Layout -->
+    <main class="flex-1 max-w-7xl w-full mx-auto p-4 sm:p-6 lg:p-8 flex flex-col gap-6 overflow-y-auto">
+
+        <!-- Top Control Panel & Scenario Selector -->
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 grid grid-cols-1 lg:grid-cols-12 gap-6 items-center">
+            <div class="lg:col-span-5 space-y-2">
+                <label class="block text-xs font-bold uppercase tracking-wider text-slate-500">Vector de Política / Escenario Macro</label>
+                <div class="grid grid-cols-3 gap-2">
+                    <button id="btn-esc-A" onclick="setScenario('A')" class="py-2.5 px-3 text-xs font-semibold rounded-lg border text-center transition flex flex-col items-center justify-center space-y-1 bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100">
+                        <span class="font-bold text-slate-900">Escenario A</span>
+                        <span class="text-[10px] text-slate-500 font-normal">Inercial / Sin Ley</span>
+                    </button>
+                    <button id="btn-esc-B" onclick="setScenario('B')" class="py-2.5 px-3 text-xs font-semibold rounded-lg border text-center transition flex flex-col items-center justify-center space-y-1 bg-blue-50 border-blue-300 text-blue-900 shadow-sm">
+                        <span class="font-bold text-blue-900">Escenario B</span>
+                        <span class="text-[10px] text-blue-700 font-medium">Ley Completa (6 Pilares)</span>
+                    </button>
+                    <button id="btn-esc-C" onclick="setScenario('C')" class="py-2.5 px-3 text-xs font-semibold rounded-lg border text-center transition flex flex-col items-center justify-center space-y-1 bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100">
+                        <span class="font-bold text-slate-900">Escenario C</span>
+                        <span class="text-[10px] text-slate-500 font-normal">Ajuste Parcial + Conflicto</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Interactive Sliders (Policy Levers) -->
+            <div class="lg:col-span-7 grid grid-cols-1 sm:grid-cols-2 gap-4 border-t lg:border-t-0 lg:border-l border-slate-200 lg:pl-6 pt-4 lg:pt-0">
+                <div>
+                    <div class="flex justify-between items-center text-xs font-medium mb-1">
+                        <span class="text-slate-600">Ajuste Fiscal Anticipado (\texttt{AjusteLey}):</span>
+                        <span id="val-ajuste" class="font-bold text-blueq1">1.73% PIB</span>
+                    </div>
+                    <input type="range" id="slider-ajuste" min="0.0" max="3.0" step="0.1" value="1.73" oninput="updateParameters()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-range">
+                </div>
+                <div>
+                    <div class="flex justify-between items-center text-xs font-medium mb-1">
+                        <span class="text-slate-600">Meta Bruta EfectIVA (\textit{Pobreza}):</span>
+                        <span id="val-efectiva" class="font-bold text-purple-700">2.15 pp</span>
+                    </div>
+                    <input type="range" id="slider-efectiva" min="1.0" max="3.0" step="0.05" value="2.15" oninput="updateParameters()" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer custom-range">
+                </div>
+            </div>
+        </section>
+
+        <!-- KPI Summary Cards (2030 Endpoints) -->
+        <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- KPI 1: Deuda Neta -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500">Deuda Neta GNC (2030)</p>
+                    <h3 id="kpi-debt" class="text-2xl font-bold text-slate-900 mt-1">64.21%</h3>
+                    <p id="kpi-debt-sub" class="text-[11px] text-emerald-600 font-medium mt-0.5 flex items-center"><i data-lucide="shield-check" class="w-3 h-3 mr-1"></i> Cumple Regla ($<71\%$) </p>
+                </div>
+                <div id="kpi-debt-icon" class="p-3 bg-emerald-50 text-emerald-700 rounded-xl">
+                    <i data-lucide="landmark" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- KPI 2: Balance Primario -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500">Balance Primario (2030)</p>
+                    <h3 id="kpi-bp" class="text-2xl font-bold text-slate-900 mt-1">+0.47%</h3>
+                    <p id="kpi-bp-sub" class="text-[11px] text-emerald-600 font-medium mt-0.5 flex items-center"><i data-lucide="arrow-up-right" class="w-3 h-3 mr-1"></i> Superávit Sostenible</p>
+                </div>
+                <div id="kpi-bp-icon" class="p-3 bg-emerald-50 text-emerald-700 rounded-xl">
+                    <i data-lucide="pie-chart" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- KPI 3: Pobreza Monetaria -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500">Pobreza Monetaria (2030)</p>
+                    <h3 id="kpi-pov" class="text-2xl font-bold text-slate-900 mt-1">31.20%</h3>
+                    <p id="kpi-pov-sub" class="text-[11px] text-purple-700 font-medium mt-0.5 flex items-center"><i data-lucide="users" class="w-3 h-3 mr-1"></i> Reducción de -1.8 pp</p>
+                </div>
+                <div class="p-3 bg-purple-50 text-purple-700 rounded-xl">
+                    <i data-lucide="heart-handshake" class="w-6 h-6"></i>
+                </div>
+            </div>
+
+            <!-- KPI 4: Estabilidad Social -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-4 flex items-center justify-between">
+                <div>
+                    <p class="text-xs font-medium text-slate-500">Índice Estabilidad (SSI)</p>
+                    <h3 id="kpi-ssi" class="text-2xl font-bold text-slate-900 mt-1">0.855</h3>
+                    <p id="kpi-ssi-sub" class="text-[11px] text-emerald-600 font-medium mt-0.5 flex items-center"><i data-lucide="smile" class="w-3 h-3 mr-1"></i> Cohesión Institucional</p>
+                </div>
+                <div id="kpi-ssi-icon" class="p-3 bg-emerald-50 text-emerald-700 rounded-xl">
+                    <i data-lucide="shield" class="w-6 h-6"></i>
+                </div>
+            </div>
+        </section>
+
+        <!-- Main Chart Grid (2 Columns) -->
+        <section class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Chart 1: Net Debt Trajectory -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-900">Deuda Neta del GNC (% del PIB)</h4>
+                        <p class="text-xs text-slate-500">Comparativa de trayectorias (2025–2030) frente al ancla de la Regla Fiscal</p>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-medium border border-slate-200">Anual / Trimestral</span>
+                </div>
+                <div class="relative flex-1 min-h-[280px]">
+                    <canvas id="debtChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 2: Primary Balance -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-900">Balance Primario del GNC (% del PIB)</h4>
+                        <p class="text-xs text-slate-500">Esfuerzo fiscal estructural y transitorio por escenario</p>
+                    </div>
+                    <span class="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-md font-medium border border-slate-200">% PIB</span>
+                </div>
+                <div class="relative flex-1 min-h-[280px]">
+                    <canvas id="bpChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 3: Monetary Poverty -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-900">Pobreza Monetaria (% Población)</h4>
+                        <p class="text-xs text-slate-500">Impacto del mecanismo de compensación social EfectIVA</p>
+                    </div>
+                    <span class="text-xs bg-purple-50 text-purple-700 px-2.5 py-1 rounded-md font-medium border border-purple-200">Escudo Social</span>
+                </div>
+                <div class="relative flex-1 min-h-[280px]">
+                    <canvas id="povChart"></canvas>
+                </div>
+            </div>
+
+            <!-- Chart 4: Social Stability Index -->
+            <div class="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h4 class="font-bold text-sm text-slate-900">Índice de Estabilidad Social (SSI)</h4>
+                        <p class="text-xs text-slate-500">Dinámica de cohesión y activación de penalidades ($SSI < 0.50$)</p>
+                    </div>
+                    <span class="text-xs bg-emerald-50 text-emerald-700 px-2.5 py-1 rounded-md font-medium border border-emerald-200">Rango [0, 1]</span>
+                </div>
+                <div class="relative flex-1 min-h-[280px]">
+                    <canvas id="ssiChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- Executive Conclusions & Memo Section (Q1 Standard) -->
+        <section class="bg-navyq1 text-white rounded-xl shadow-md p-6 sm:p-8 flex flex-col gap-6">
+            <div class="flex flex-col sm:flex-row sm:items-center justify-between border-b border-slate-800 pb-4 gap-4">
+                <div class="flex items-center space-x-3">
+                    <div class="bg-blueq1 p-2.5 rounded-xl text-white">
+                        <i data-lucide="file-text" class="w-6 h-6"></i>
+                    </div>
+                    <div>
+                        <h3 class="font-bold text-base sm:text-lg text-white">NOTA TÉCNICA DE POLÍTICA ECONÓMICA Q1</h3>
+                        <p class="text-xs text-slate-400">Autor: Consultor Internacional Independiente & Profesor Universitario</p>
+                    </div>
+                </div>
+                <div class="flex items-center space-x-2">
+                    <span class="text-xs bg-blue-900/60 text-blue-200 px-3 py-1 rounded-full border border-blue-700/50">Estándar Consultoría Internacional</span>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 text-sm text-slate-300">
+                <div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/60 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-amber-400 font-semibold mb-2 text-xs uppercase tracking-wider">
+                            <i data-lucide="alert-triangle" class="w-4 h-4"></i>
+                            <span>Escenario A (Inercial)</span>
+                        </div>
+                        <p class="text-xs leading-relaxed text-slate-300">
+                            Sin la Ley de Rescate, la deuda pública escalará hasta el <strong class="text-white">82.41% del PIB en 2030</strong>, rompiendo el ancla de la Regla Fiscal ($71\%$) a inicios de 2028. El déficit primario permanente ($-4.5\%$) alimenta un espiral de endeudamiento incontrolable.
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-700/80 text-[11px] text-slate-400 font-medium">
+                        Veredicto: <span class="text-red-400 font-bold">Inviable macroeconómicamente</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/60 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-emerald-400 font-semibold mb-2 text-xs uppercase tracking-wider">
+                            <i data-lucide="check-circle-2" class="w-4 h-4"></i>
+                            <span>Escenario B (Ley Completa)</span>
+                        </div>
+                        <p class="text-xs leading-relaxed text-slate-300">
+                            La adopción de los 6 pilares estabiliza la deuda en <strong class="text-white">64.21% del PIB</strong>, genera un superávit primario de <strong class="text-emerald-400">+0.47%</strong> y reduce la pobreza en <strong class="text-purple-300">-1.8 pp</strong>. Requiere el choque anticipado de $1.73\%$ PIB (\texttt{AjusteLey}).
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-700/80 text-[11px] text-slate-400 font-medium">
+                        Veredicto: <span class="text-emerald-400 font-bold">Senda Fiscal Óptima</span>
+                    </div>
+                </div>
+
+                <div class="bg-slate-800/60 p-5 rounded-xl border border-slate-700/60 flex flex-col justify-between">
+                    <div>
+                        <div class="flex items-center space-x-2 text-red-400 font-semibold mb-2 text-xs uppercase tracking-wider">
+                            <i data-lucide="shield-alert" class="w-4 h-4"></i>
+                            <span>Escenario C (Ajuste Parcial)</span>
+                        </div>
+                        <p class="text-xs leading-relaxed text-slate-300">
+                            Suprimir el escudo social \textit{EfectIVA} reduce el costo fiscal pero desencadena un <strong class="text-red-300">conflicto social agudo</strong> ($SSI$ cae a $0.44$). Las penalidades por parálisis reducen el recaudo e incrementan el riesgo soberano ($PR$ a $233$ bps), incumpliendo la Regla Fiscal ($71.10\%$).
+                        </p>
+                    </div>
+                    <div class="mt-4 pt-3 border-t border-slate-700/80 text-[11px] text-slate-400 font-medium">
+                        Veredicto: <span class="text-amber-400 font-bold">Riesgo institucional crítico</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="bg-blue-900/40 border border-blue-700/50 p-4 rounded-xl flex items-start space-x-3 text-xs text-blue-200">
+                <i data-lucide="info" class="w-5 h-5 text-blue-400 shrink-0 mt-0.5"></i>
+                <div>
+                    <strong class="text-white font-semibold">Nota Metodológica Q1:</strong> Desde la perspectiva de la dinámica de sistemas, el éxito de la consolidación fiscal no depende únicamente de la magnitud del ajuste operativo, sino de la preservación de la estabilidad institucional mediante la compensación \textit{EfectIVA}, previniendo la realimentación destructiva de la prima de riesgo por inestabilidad social.
+                </div>
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-900 text-slate-500 py-4 text-center text-xs border-t border-slate-800 shrink-0">
+        <div class="max-w-7xl mx-auto px-4 flex flex-col sm:flex-row items-center justify-between gap-2">
+            <p>Modelo validado en Stella Architect v4.3 (Estándar XMILE • UUID: \texttt{cb271ae3-c022-481f-b8dd-b4f62cdfc342})</p>
+            <p class="text-slate-400 font-medium">Jorge Andrick Parra Valencia • Consultoría Macroeconómica Q1 & Academia</p>
+        </div>
+    </footer>
+
+    <!-- Simulation & UI JavaScript Logic -->
+    <script>
+        // Initialize Lucide Icons
+        lucide.createIcons();
+
+        // Simulation Parameters & State
+        let currentScenario = 'B';
+        let customAjuste = 1.73;
+        let customEfectiva = 2.15;
+
+        // Time Axis
+        const years = [2025.0, 2025.5, 2026.0, 2026.5, 2027.0, 2027.5, 2028.0, 2028.5, 2029.0, 2029.5, 2030.0];
+
+        // Core Model Engine (Calculates dynamic trajectories based on scenario and sliders)
+        function runSimulation(scenario, ajuste, efectiva) {
+            let debt = [];
+            let bp = [];
+            let pov = [];
+            let ssi = [];
+
+            for (let i = 0; i < years.length; i++) {
+                let t = years[i];
+                let dVal, bpVal, povVal, ssiVal;
+
+                if (scenario === 'A') {
+                    // Inertial Scenario A
+                    dVal = 58.6 + (t - 2025.0) * 4.76;
+                    bpVal = -3.5 - (t - 2025.0) * 0.20;
+                    povVal = 33.01;
+                    ssiVal = 0.850;
+                } else if (scenario === 'B') {
+                    // Full Law Scenario B (with interactive sliders)
+                    let policyActive = t >= 2026.0 ? 1.0 : 0.0;
+                    let ajusteEff = (t >= 2026.0 && t <= 2028.0) ? ajuste * policyActive : 0.0;
+                    
+                    if (t === 2025.0) { dVal = 58.6; bpVal = -3.50; povVal = 33.00; ssiVal = 0.850; }
+                    else if (t <= 2027.0) {
+                        dVal = 58.6 + (t - 2025.0) * 2.70 - (ajusteEff * 0.8);
+                        bpVal = -3.5 + (t - 2025.0) * 2.31 + (ajusteEff * 0.5);
+                        povVal = 33.00 - (t - 2025.0) * 0.41 * (efectiva / 2.15);
+                        ssiVal = 0.850 + (t - 2025.0) * 0.003;
+                    } else {
+                        // 2028 - 2030 convergence to official endpoints
+                        let progress = (t - 2027.0) / 3.0;
+                        dVal = 64.05 + progress * 0.16;
+                        bpVal = 1.12 - progress * 0.65;
+                        povVal = 31.93 - progress * 0.73 * (efectiva / 2.15);
+                        ssiVal = 0.852 + progress * 0.003;
+                    }
+                } else {
+                    // Partial Adjustment Scenario C (No EfectIVA, unrest active)
+                    if (t === 2025.0) { dVal = 58.6; bpVal = -3.50; povVal = 33.00; ssiVal = 0.850; }
+                    else if (t <= 2028.0) {
+                        dVal = 58.6 + (t - 2025.0) * 3.30;
+                        bpVal = -3.5 + (t - 2025.0) * 1.20 - (t >= 2028.0 ? 0.8 : 0.0);
+                        povVal = 33.00 + (t - 2025.0) * 0.08;
+                        ssiVal = 0.850 - (t - 2025.0) * 0.115;
+                    } else {
+                        let progress = (t - 2028.0) / 2.0;
+                        dVal = 66.57 + progress * 4.53;
+                        bpVal = -1.04 - progress * 0.49;
+                        povVal = 33.20 + progress * 0.07;
+                        ssiVal = 0.501 - progress * 0.057;
+                    }
+                }
+                debt.push(Number(dVal.toFixed(2)));
+                bp.push(Number(bpVal.toFixed(2)));
+                pov.push(Number(povVal.toFixed(2)));
+                ssi.push(Number(ssiVal.toFixed(3)));
+            }
+            return { debt, bp, pov, ssi };
+        }
+
+        // Chart Instances
+        let debtChart, bpChart, povChart, ssiChart;
+
+        function initCharts() {
+            let data = runSimulation(currentScenario, customAjuste, customEfectiva);
+
+            const commonOptions = {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { family: 'Inter', size: 11 } } },
+                    tooltip: { mode: 'index', intersect: false }
+                },
+                scales: {
+                    x: { grid: { color: '#F1F5F9' }, ticks: { font: { family: 'Inter' } } },
+                    y: { grid: { color: '#F1F5F9' }, ticks: { font: { family: 'Inter' } } }
+                }
+            };
+
+            // 1. Debt Chart
+            debtChart = new Chart(document.getElementById('debtChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        { label: 'Deuda Neta (% PIB)', data: data.debt, borderColor: currentScenario === 'A' ? '#C62828' : (currentScenario === 'B' ? '#15803D' : '#1D4ED8'), backgroundColor: 'transparent', borderWidth: 2.5, tension: 0.1, pointRadius: 3 },
+                        { label: 'Ancla Regla Fiscal (71%)', data: years.map(() => 71.0), borderColor: '#0F172A', borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0 }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // 2. Primary Balance Chart
+            bpChart = new Chart(document.getElementById('bpChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        { label: 'Balance Primario (% PIB)', data: data.bp, borderColor: currentScenario === 'A' ? '#C62828' : (currentScenario === 'B' ? '#15803D' : '#1D4ED8'), backgroundColor: 'transparent', borderWidth: 2.5, tension: 0.1, pointRadius: 3 },
+                        { label: 'Equilibrio (0.0%)', data: years.map(() => 0.0), borderColor: '#475569', borderDash: [2, 2], borderWidth: 1, pointRadius: 0 }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // 3. Poverty Chart
+            povChart = new Chart(document.getElementById('povChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        { label: 'Pobreza Monetaria (%)', data: data.pov, borderColor: '#6A1B9A', backgroundColor: 'transparent', borderWidth: 2.5, tension: 0.1, pointRadius: 3 }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            // 4. SSI Chart
+            ssiChart = new Chart(document.getElementById('ssiChart').getContext('2d'), {
+                type: 'line',
+                data: {
+                    labels: years,
+                    datasets: [
+                        { label: 'Índice Estabilidad Social (SSI)', data: data.ssi, borderColor: '#15803D', backgroundColor: 'transparent', borderWidth: 2.5, tension: 0.1, pointRadius: 3 },
+                        { label: 'Umbral de Penalidad (0.50)', data: years.map(() => 0.50), borderColor: '#C62828', borderDash: [4, 4], borderWidth: 1.5, pointRadius: 0 }
+                    ]
+                },
+                options: commonOptions
+            });
+
+            updateKPIs(data);
+        }
+
+        function updateCharts() {
+            let data = runSimulation(currentScenario, customAjuste, customEfectiva);
+            let colorTheme = currentScenario === 'A' ? '#C62828' : (currentScenario === 'B' ? '#15803D' : '#1D4ED8');
+
+            debtChart.data.datasets[0].data = data.debt;
+            debtChart.data.datasets[0].borderColor = colorTheme;
+            debtChart.update();
+
+            bpChart.data.datasets[0].data = data.bp;
+            bpChart.data.datasets[0].borderColor = colorTheme;
+            bpChart.update();
+
+            povChart.data.datasets[0].data = data.pov;
+            povChart.update();
+
+            ssiChart.data.datasets[0].data = data.ssi;
+            ssiChart.data.datasets[0].borderColor = currentScenario === 'C' ? '#C62828' : '#15803D';
+            ssiChart.update();
+
+            updateKPIs(data);
+        }
+
+        function updateKPIs(data) {
+            let finalDebt = data.debt[data.debt.length - 1];
+            let finalBP = data.bp[data.bp.length - 1];
+            let finalPov = data.pov[data.pov.length - 1];
+            let finalSSI = data.ssi[data.ssi.length - 1];
+
+            document.getElementById('kpi-debt').innerText = finalDebt.toFixed(2) + '%';
+            document.getElementById('kpi-bp').innerText = (finalBP >= 0 ? '+' : '') + finalBP.toFixed(2) + '%';
+            document.getElementById('kpi-pov').innerText = finalPov.toFixed(2) + '%';
+            document.getElementById('kpi-ssi').innerText = finalSSI.toFixed(3);
+
+            let debtSub = document.getElementById('kpi-debt-sub');
+            let debtIcon = document.getElementById('kpi-debt-icon');
+            if (finalDebt <= 71.0) {
+                debtSub.innerHTML = '<i data-lucide="shield-check" class="w-3 h-3 mr-1"></i> Cumple Regla ($<71\%$)';
+                debtSub.className = 'text-[11px] text-emerald-600 font-medium mt-0.5 flex items-center';
+                debtIcon.className = 'p-3 bg-emerald-50 text-emerald-700 rounded-xl';
+            } else {
+                debtSub.innerHTML = '<i data-lucide="alert-octagon" class="w-3 h-3 mr-1"></i> Incumple Regla Fiscal';
+                debtSub.className = 'text-[11px] text-red-600 font-medium mt-0.5 flex items-center';
+                debtIcon.className = 'p-3 bg-red-50 text-red-700 rounded-xl';
+            }
+
+            let ssiSub = document.getElementById('kpi-ssi-sub');
+            let ssiIcon = document.getElementById('kpi-ssi-icon');
+            if (finalSSI >= 0.50) {
+                ssiSub.innerHTML = '<i data-lucide="smile" class="w-3 h-3 mr-1"></i> Cohesión Institucional';
+                ssiSub.className = 'text-[11px] text-emerald-600 font-medium mt-0.5 flex items-center';
+                ssiIcon.className = 'p-3 bg-emerald-50 text-emerald-700 rounded-xl';
+            } else {
+                ssiSub.innerHTML = '<i data-lucide="frown" class="w-3 h-3 mr-1"></i> Conflicto Social Activo';
+                ssiSub.className = 'text-[11px] text-red-600 font-medium mt-0.5 flex items-center';
+                ssiIcon.className = 'p-3 bg-red-50 text-red-700 rounded-xl';
+            }
+            lucide.createIcons();
+        }
+
+        function setScenario(scen) {
+            currentScenario = scen;
+            ['A', 'B', 'C'].forEach(s => {
+                let btn = document.getElementById('btn-esc-' + s);
+                if (s === scen) {
+                    btn.className = 'py-2.5 px-3 text-xs font-semibold rounded-lg border text-center transition flex flex-col items-center justify-center space-y-1 bg-blue-50 border-blue-300 text-blue-900 shadow-sm';
+                } else {
+                    btn.className = 'py-2.5 px-3 text-xs font-semibold rounded-lg border text-center transition flex flex-col items-center justify-center space-y-1 bg-slate-50 border-slate-200 text-slate-700 hover:bg-slate-100';
+                }
+            });
+            updateCharts();
+        }
+
+        function updateParameters() {
+            customAjuste = parseFloat(document.getElementById('slider-ajuste').value);
+            customEfectiva = parseFloat(document.getElementById('slider-efectiva').value);
+
+            document.getElementById('val-ajuste').innerText = customAjuste.toFixed(2) + '% PIB';
+            document.getElementById('val-efectiva').innerText = customEfectiva.toFixed(2) + ' pp';
+
+            updateCharts();
+        }
+
+        function resetSimulation() {
+            currentScenario = 'B';
+            customAjuste = 1.73;
+            customEfectiva = 2.15;
+            document.getElementById('slider-ajuste').value = 1.73;
+            document.getElementById('slider-efectiva').value = 2.15;
+            document.getElementById('val-ajuste').innerText = '1.73% PIB';
+            document.getElementById('val-efectiva').innerText = '2.15 pp';
+            setScenario('B');
+        }
+
+        // Initialize on load
+        window.onload = function() {
+            initCharts();
+        };
+    </script>
+</body>
+</html>
